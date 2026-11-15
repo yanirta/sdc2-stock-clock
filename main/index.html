@@ -168,7 +168,7 @@ for(const id of ['quiet_from','quiet_to'])$(id).innerHTML=[...Array(24).keys()].
 let first=true;
 function toast(t){const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(m._t);m._t=setTimeout(()=>m.style.display='none',3000)}
 function post(url,body){return fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body})}
-function dec(p){p=Math.abs(p);return p>=10000?0:p>=10?2:4}
+function dec(p){p=Math.abs(p);return p>=10000?0:p>=1?2:4}
 function fmt(p){return p.toLocaleString(undefined,{minimumFractionDigits:dec(p),maximumFractionDigits:dec(p)})}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 async function load(){

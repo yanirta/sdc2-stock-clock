@@ -134,8 +134,8 @@ static int price_decimals(double p)
 {
     double a = fabs(p);
     if (a >= 10000) return 0;
-    if (a >= 10) return 2;
-    return 4;
+    if (a >= 1) return 2;  // stocks and forex: at most 2 decimals
+    return 4;              // sub-1 prices (some crypto) would otherwise round to nothing
 }
 
 static void fmt_price(char *out, size_t n, double p)
