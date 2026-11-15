@@ -32,8 +32,8 @@ static volatile bool s_dirty = true;
 #define C_TEXT rgb(240, 242, 245)
 #define C_DIM rgb(130, 136, 148)
 #define C_FAINT rgb(55, 60, 70)
-#define C_UP rgb(30, 210, 120)
-#define C_DOWN rgb(255, 85, 85)
+#define C_UP rgb(40, 225, 80)
+#define C_DOWN rgb(255, 55, 55)
 #define C_ACCENT rgb(80, 160, 255)
 
 static bool on_trans_done(esp_lcd_panel_io_handle_t io, esp_lcd_panel_io_event_data_t *ed, void *ctx)
@@ -240,6 +240,14 @@ static void draw_status(canvas_t *c)
     }
 }
 
+// Green for up, red for down, more saturated the bigger the move (full colour at +-3% or more).
+static uint16_t move_color(double pct)
+{
+    double t = fabs(pct) / 3.0;
+    if (t > 1) t = 1;
+    return gfx_mix(rgb(150, 155, 165), pct >= 0 ? C_UP : C_DOWN, (uint8_t)(140 + 115 * t));
+}
+
 static void draw_change_pill(canvas_t *c, int x, int y, int w, int h, const quote_t *q)
 {
     if (!q->ok || q->prev == 0) {
@@ -248,7 +256,7 @@ static void draw_change_pill(canvas_t *c, int x, int y, int w, int h, const quot
         return;
     }
     double pct = (q->price - q->prev) / q->prev * 100.0;
-    uint16_t col = pct >= 0 ? C_UP : C_DOWN;
+    uint16_t col = move_color(pct);
     gfx_round_rect(c, x, y, w, h, 5, gfx_mix(C_BG, col, 70));
     char s[16];
     fmt_fixed(s, sizeof(s) - 1, pct, 2, true);
@@ -351,7 +359,7 @@ static void draw_detail(canvas_t *c, const quote_t *q, int page, int pages)
     }
     double chg = q->price - q->prev;
     double pct = q->prev ? chg / q->prev * 100.0 : 0;
-    uint16_t col = chg >= 0 ? C_UP : C_DOWN;
+    uint16_t col = move_color(pct);
 
     char price[24];
     fmt_price(price, sizeof(price), q->price);

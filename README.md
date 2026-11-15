@@ -24,7 +24,7 @@ Everything is set up from the clock's own web page; it is updated over Wi-Fi onl
 ## Install
 
 1. Open the clock's original web page and go to **Firmware Update (OTA)**.
-2. Upload `dist/SDC2_stocks_v1.0.9.bin`. The original updater only accepts file names starting with `SDC2`.
+2. Upload `dist/SDC2_stocks_v1.0.10.bin`. The original updater only accepts file names starting with `SDC2`.
 3. The clock reboots into Stock Clock and joins the same Wi-Fi. Its address is shown on screen.
 4. Open `http://<clock-ip>/` to set symbols, time zone, weather location and the rest.
 
@@ -141,7 +141,7 @@ curl --data-binary @build/stock_clock.bin http://<clock-ip>/ota
 ```
 
 The clock's app slots are fixed by its original partition table; a `.bin` must stay under about 782,000 bytes
-(v1.0.9 is about 689 KB). To fit, `sdkconfig.defaults` turns off unused Wi-Fi and TLS features, uses the C2's ROM
+(v1.0.10 is about 689 KB). To fit, `sdkconfig.defaults` turns off unused Wi-Fi and TLS features, uses the C2's ROM
 mbedTLS, and drops all logging, panic printing and the serial console (nobody can read the serial port anyway).
 Keep `CONFIG_LWIP_NETIF_LOOPBACK=y`: the web server's control socket needs it, and without it the web page is dead.
 `partitions.csv` is only for the build's size check; OTA never changes the clock's partition table.
@@ -161,7 +161,7 @@ Fonts are generated from DejaVu Sans Bold: `python tools/gen_fonts.py main/fonts
 | GPIO18 | input with pull-up in the original firmware; no visible button |
 | GPIO7 | PWM in the original firmware; no buzzer fitted on the tested unit |
 
-Display: ST7789, SPI mode 3, colour inversion off, BGR order. Flash: 4 MB; partitions nvs 0x9000, otadata 0xE000,
+Display: ST7789, SPI mode 3, colour inversion on, RGB order (checked against photos of the screen). Flash: 4 MB; partitions nvs 0x9000, otadata 0xE000,
 app0 0x10000 and app1 0xD0000 (0xC0000 each), spiffs 0x190000 (2.5 MB, used by the original firmware).
 
 The GeekMagic ESP32-C2 clock uses different pins (SCLK 4, MOSI 6, DC 5, RST 1, backlight 18); they can be changed

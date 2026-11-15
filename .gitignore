@@ -4,6 +4,6 @@ build/
 sdkconfig.old
 # Only the current release binary is kept in dist/
 dist/*.bin
-!dist/SDC2_stocks_v1.0.9.bin
+!dist/SDC2_stocks_v1.0.10.bin
 .DS_Store
 __pycache__/

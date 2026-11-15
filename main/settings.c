@@ -26,8 +26,8 @@ void settings_defaults(settings_t *s)
     s->pin_bl = 5;   // PWM, active low
     s->bl_inverted = 1;
     s->spi_mode = 3;
-    s->invert = 0;   // confirmed on the real screen (1 gives inverted colours)
-    s->bgr = 1;
+    s->invert = 1;   // confirmed from photos of the real screen: inversion on, RGB order
+    s->bgr = 0;
     s->rot180 = 0;
     s->spi_mhz = 40;
     s->wx_off = 0;
