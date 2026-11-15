@@ -113,6 +113,8 @@ details summary{cursor:pointer;font-weight:600}
   <h2>Messages</h2>
   <table id="push"></table>
   <div class="help">Pages pushed by other devices with <code>POST /api/push</code> (see the README).</div>
+  <label for="push_badge">Dot next to the clock for messages newer than</label>
+  <div style="display:flex;gap:8px"><select id="push_badge"><option value="0">Off</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hour</option><option value="120">2 hours</option><option value="240">4 hours</option></select><button style="margin:0" onclick="save(['push_badge'])">Save</button></div>
 </section>
 
 <section>

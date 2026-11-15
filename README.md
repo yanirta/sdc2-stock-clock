@@ -24,7 +24,7 @@ Everything is set up from the clock's own web page; it is updated over Wi-Fi onl
 ## Install
 
 1. Open the clock's original web page and go to **Firmware Update (OTA)**.
-2. Upload `dist/SDC2_stocks_v1.0.10.bin`. The original updater only accepts file names starting with `SDC2`.
+2. Upload `dist/SDC2_stocks_v1.0.11.bin`. The original updater only accepts file names starting with `SDC2`.
 3. The clock reboots into Stock Clock and joins the same Wi-Fi. Its address is shown on screen.
 4. Open `http://<clock-ip>/` to set symbols, time zone, weather location and the rest.
 
@@ -69,6 +69,8 @@ curl http://<clock-ip>/api/push -d id=build -d clear=1
 | `clear` | `1` = remove the page |
 
 Active pages are listed under Messages on the settings page, where you can clear them.
+While a message is newer than 10 minutes (configurable there, or off), a dot in its colour shows next to the clock
+on the other pages, with a count when there are several.
 
 ### "Claude needs you" (Claude Code hooks)
 
@@ -141,7 +143,7 @@ curl --data-binary @build/stock_clock.bin http://<clock-ip>/ota
 ```
 
 The clock's app slots are fixed by its original partition table; a `.bin` must stay under about 782,000 bytes
-(v1.0.10 is about 689 KB). To fit, `sdkconfig.defaults` turns off unused Wi-Fi and TLS features, uses the C2's ROM
+(v1.0.11 is about 690 KB). To fit, `sdkconfig.defaults` turns off unused Wi-Fi and TLS features, uses the C2's ROM
 mbedTLS, and drops all logging, panic printing and the serial console (nobody can read the serial port anyway).
 Keep `CONFIG_LWIP_NETIF_LOOPBACK=y`: the web server's control socket needs it, and without it the web page is dead.
 `partitions.csv` is only for the build's size check; OTA never changes the clock's partition table.

@@ -44,7 +44,9 @@ typedef struct {
     // ---- added in 1.0.8; they land in 1.0.7's zeroed tail padding, so 0 must mean "default"
     uint8_t night_bright_p1; // night brightness + 1 (0 = default 10%, 1 = screen off)
     uint8_t night_pages;     // 1 = keep the normal pages at night (0 = big clock, the default)
+    uint8_t push_badge_p1;   // header dot for messages newer than N minutes, stored N + 1 (0 = default 10, 1 = off)
 } settings_t;
+#define PUSH_BADGE_MIN(c) ((c)->push_badge_p1 ? (c)->push_badge_p1 - 1 : 10)
 #define NIGHT_BRIGHT(c) ((c)->night_bright_p1 ? (c)->night_bright_p1 - 1 : 10)
 
 extern settings_t g_cfg;

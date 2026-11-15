@@ -201,16 +201,60 @@ typedef struct {
 
 static quote_t s_snap[MAX_SYMS];
 
-static void draw_header(canvas_t *c, const char *title, uint16_t title_color)
+static push_t s_push[MAX_PUSH];
+
+// Dot (in the newest message's colour) plus a count, for push messages that arrived within the last
+// N minutes. Drawn right-aligned at `right`; returns the x where it starts (or `right` if nothing to show).
+static int draw_push_badge(canvas_t *c, int right, int y, uint16_t text_col, uint16_t default_col)
 {
-    gfx_text(c, &font_m, 8, 5, title, title_color, ALIGN_LEFT);
+    int win = PUSH_BADGE_MIN(&g_cfg);
+    time_t now;
+    time(&now);
+    if (!win || !time_valid()) return right;
+    int n = 0, newest = -1;
+    for (int i = 0; i < MAX_PUSH; i++) {
+        const push_t *m = &s_push[i];
+        if (!m->id[0] || m->expires <= now || now - m->updated > win * 60) continue;
+        n++;
+        if (newest < 0 || m->updated > s_push[newest].updated) newest = i;
+    }
+    if (!n) return right;
+    int x = right;
+    if (n > 1) {
+        char cnt[12];
+        snprintf(cnt, sizeof(cnt), "%d", n);
+        x -= gfx_text_width(&font_s, cnt);
+        gfx_text(c, &font_s, x, y + 2, cnt, text_col, ALIGN_LEFT);
+        x -= 3;
+    }
+    uint16_t col = s_push[newest].color ? s_push[newest].color : s_push[newest].theme == 1 ? rgb(217, 119, 87) : default_col;
+    gfx_disc(c, x - 5, y + 10, 5, col);
+    return x - 11;
+}
+
+// Title on the left, then (right to left) the clock and the recent-messages badge.
+static void draw_header_ex(canvas_t *c, const char *title, uint16_t title_color, uint16_t clock_col, uint16_t accent,
+                           int title_x)
+{
+    int right = 232;
     if (time_valid()) {
         char clk[12];
         time_t now;
         time(&now);
         fmt_clock(clk, sizeof(clk), now);
-        gfx_text(c, &font_m, 232, 5, clk, C_DIM, ALIGN_RIGHT);
+        gfx_text(c, &font_m, 232, 5, clk, clock_col, ALIGN_RIGHT);
+        right -= gfx_text_width(&font_m, clk) + 8;
     }
+    right = draw_push_badge(c, right, 5, clock_col, accent) - 6;
+    char t[32];
+    strlcpy(t, title, sizeof(t));
+    while (strlen(t) > 3 && title_x + gfx_text_width(&font_m, t) > right) t[strlen(t) - 1] = 0;
+    gfx_text(c, &font_m, title_x, 5, t, title_color, ALIGN_LEFT);
+}
+
+static void draw_header(canvas_t *c, const char *title, uint16_t title_color)
+{
+    draw_header_ex(c, title, title_color, C_DIM, C_ACCENT, 8);
 }
 
 static void draw_status(canvas_t *c)
@@ -634,12 +678,9 @@ static void draw_claude(canvas_t *c)
 {
     gfx_fill(c, CL_BG);
     draw_spark(c, 21, 15, 11, CL_ORANGE);
-    gfx_text(c, &font_m, 38, 5, "Claude", CL_TEXT, ALIGN_LEFT);
+    draw_header_ex(c, "Claude", CL_TEXT, CL_DIM, CL_ORANGE, 38);
     time_t now;
     time(&now);
-    char clk[12];
-    fmt_clock(clk, sizeof(clk), now);
-    gfx_text(c, &font_m, 232, 5, clk, CL_DIM, ALIGN_RIGHT);
     draw_limit(c, 34, "5-hour limit", s_claude.s_pct, s_claude.s_reset, now);
     draw_limit(c, 118, "Weekly limit", s_claude.w_pct, s_claude.w_reset, now);
     char foot[48], plan[16] = "";
@@ -657,7 +698,6 @@ static void draw_claude(canvas_t *c)
 
 // ---------------------------------------------------------------- push pages
 
-static push_t s_push[MAX_PUSH];
 
 // Greedy word wrap; returns the y below the last row drawn.
 static int draw_wrapped(canvas_t *c, const font_t *f, int x, int y, int maxw, const char *s, uint16_t col, int rows)

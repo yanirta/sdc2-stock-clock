@@ -102,7 +102,8 @@ static esp_err_t h_state(httpd_req_t *r)
         fmt_fixed(am, sizeof(am), g_cfg.alert_move_x10 / 10.0, 1, false);
         jw(&w, ",\"alert_move\":%s,\"alert_claude\":%u,\"quiet_from\":%u,\"quiet_to\":%u,\"volume\":%u", am,
            g_cfg.alert_claude, g_cfg.quiet_from, g_cfg.quiet_to, g_cfg.volume);
-        jw(&w, ",\"night_bright\":%u,\"night_pages\":%u", NIGHT_BRIGHT(&g_cfg), g_cfg.night_pages);
+        jw(&w, ",\"night_bright\":%u,\"night_pages\":%u,\"push_badge\":%u", NIGHT_BRIGHT(&g_cfg), g_cfg.night_pages,
+           PUSH_BADGE_MIN(&g_cfg));
         xSemaphoreTake(g_qmux, portMAX_DELAY);
         weather_t wx = g_wx;
         xSemaphoreGive(g_qmux);
@@ -252,6 +253,10 @@ static esp_err_t h_settings(httpd_req_t *r)
         display_redraw();
     }
     if (field_int(body, "night_pages", &v)) g_cfg.night_pages = !!v;
+    if (field_int(body, "push_badge", &v) && v >= 0 && v <= 240) {
+        g_cfg.push_badge_p1 = v + 1;
+        display_redraw();
+    }
     bool wx_changed = false;
     if (field(body, "wx_name", t, sizeof(t))) {
         strlcpy(g_cfg.wx_name, t, sizeof(g_cfg.wx_name));
