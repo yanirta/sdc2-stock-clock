@@ -79,21 +79,16 @@ on the other pages, with a count when there are several.
 - **Stop** (Claude finished its turn): "Claude is done"
 - **UserPromptSubmit / PostToolUse / SessionEnd:** clears that session's page
 
-Copy the script somewhere permanent and add this to `~/.claude/settings.json` (replace the IP and path):
+To install, copy the scripts to their permanent place (the templates expect this folder):
 
-```json
-{
-  "hooks": {
-    "Notification":     [{ "hooks": [{ "type": "command", "command": "STOCK_CLOCK_IP=192.168.1.50 python3 ~/bin/clock_hook.py" }] }],
-    "Stop":             [{ "hooks": [{ "type": "command", "command": "STOCK_CLOCK_IP=192.168.1.50 python3 ~/bin/clock_hook.py" }] }],
-    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "STOCK_CLOCK_IP=192.168.1.50 python3 ~/bin/clock_hook.py" }] }],
-    "SessionEnd":       [{ "hooks": [{ "type": "command", "command": "STOCK_CLOCK_IP=192.168.1.50 python3 ~/bin/clock_hook.py" }] }],
-    "PostToolUse": [{ "matcher": "*", "hooks": [{ "type": "command",
-      "command": "test -n \"$(ls -A ~/Library/Application\\ Support/StockClock/active 2>/dev/null)\" && STOCK_CLOCK_IP=192.168.1.50 python3 ~/bin/clock_hook.py || true" }] }]
-  }
-}
+```bash
+mkdir -p ~/Library/Application\ Support/StockClock
+cp tools/clock_hook.py tools/claude_usage_push.py ~/Library/Application\ Support/StockClock/
 ```
 
+Then add the `hooks` block from [`templates/claude-hooks.json`](templates/claude-hooks.json) to
+`~/.claude/settings.json`, replacing `CLOCK_IP` with your clock's address. If you already have hooks, append these
+entries to your existing event lists instead of replacing them. New Claude Code sessions pick them up.
 The `PostToolUse` guard skips starting Python on every tool call unless a page is actually showing.
 
 ## Claude usage page
@@ -103,21 +98,17 @@ The `PostToolUse` guard skips starting Python on every tool call unless a page i
 reset times to the clock (`POST /api/claude` with `s`, `sr`, `w`, `wr`, `plan`). The login token only goes to
 api.anthropic.com. Bars turn amber at 70% and red at 90%. The page hides itself after 24 hours without an update.
 
-To run it every 5 minutes, save this as `~/Library/LaunchAgents/com.stockclock.claude-usage.plist` (fix the paths and
-IP), then load it with `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.stockclock.claude-usage.plist`:
+To run it every 5 minutes, install the LaunchAgent from
+[`templates/com.stockclock.claude-usage.plist`](templates/com.stockclock.claude-usage.plist) (after copying the scripts as
+above; replace the IP):
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>Label</key><string>com.stockclock.claude-usage</string>
-  <key>ProgramArguments</key>
-  <array><string>/usr/bin/python3</string><string>/Users/you/bin/claude_usage_push.py</string><string>192.168.1.50</string></array>
-  <key>StartInterval</key><integer>300</integer>
-  <key>RunAtLoad</key><true/>
-</dict></plist>
+```bash
+sed -e "s|HOME_DIR|$HOME|g" -e "s|CLOCK_IP|192.168.1.50|g" templates/com.stockclock.claude-usage.plist \
+  > ~/Library/LaunchAgents/com.stockclock.claude-usage.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.stockclock.claude-usage.plist
 ```
 
+It logs to `~/Library/Application Support/StockClock/push.log`.
 Remove it with `launchctl bootout gui/$(id -u)/com.stockclock.claude-usage` and delete the plist.
 
 ## Night mode and alerts
