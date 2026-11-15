@@ -1,0 +1,9 @@
+# Flash dumps contain Wi-Fi credentials and the vendor's firmware: never commit
+backup/
+build/
+sdkconfig.old
+# Only the current release binary is kept in dist/
+dist/*.bin
+!dist/SDC2_stocks_v1.0.8.bin
+.DS_Store
+__pycache__/

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock Clock</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#16181d;--dim:#6b7280;--line:#e3e5ea;--accent:#2563eb;--up:#0f9d58;--down:#d93025}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1015;--card:#171a21;--text:#eceef2;--dim:#9097a3;--line:#262a33;--accent:#5b9cff;--up:#2fd287;--down:#ff6b6b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,system-ui,Segoe UI,Roboto,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 2px}
+.sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0}
+h2{font-size:15px;margin:0 0 10px}
+label{display:block;font-size:13px;color:var(--dim);margin:10px 0 4px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+button{margin-top:12px;padding:9px 14px;border:0;border-radius:8px;background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+button.danger{background:var(--down)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+td{padding:6px 2px;border-bottom:1px solid var(--line)}
+td.r{text-align:right}
+.up{color:var(--up)}.down{color:var(--down)}.muted{color:var(--dim)}
+.help{color:var(--dim);font-size:12px;margin-top:4px}
+details summary{cursor:pointer;font-weight:600}
+#msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:8px;display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>Stock Clock</h1>
+<div class="sub" id="sub">loading…</div>
+
+<section>
+  <h2>Quotes</h2>
+  <table id="q"></table>
+</section>
+
+<section>
+  <h2>Symbols &amp; display</h2>
+  <label for="syms">Symbols (Yahoo Finance, comma separated, up to 10)</label>
+  <input id="syms" placeholder="AAPL,MSFT,EURUSD=X">
+  <div class="help">Stocks: AAPL, SHOP.TO, TA35.TA · Forex: EURUSD=X, USDJPY=X · Indexes: ^GSPC · Crypto: BTC-USD</div>
+  <div class="row">
+    <div><label for="cycle_s">Seconds per page</label><input id="cycle_s" type="number" min="2" max="120"></div>
+    <div><label for="refresh_s">Refresh every (s)</label><input id="refresh_s" type="number" min="15" max="3600"></div>
+  </div>
+  <div class="row">
+    <div><label for="bright">Brightness <span id="bv"></span></label><input id="bright" type="range" min="0" max="100"></div>
+    <div><label for="h24">Clock</label><select id="h24"><option value="1">24-hour</option><option value="0">12-hour</option></select></div>
+  </div>
+  <div class="row">
+    <div><label for="overview">Overview page</label><select id="overview"><option value="1">Show</option><option value="0">Hide</option></select></div>
+    <div><label for="tz">Time zone (POSIX)</label><input id="tz"></div>
+  </div>
+  <button onclick="save(['syms','cycle_s','refresh_s','bright','h24','overview','tz'])">Save</button>
+</section>
+
+<section>
+  <h2>Weather</h2>
+  <div class="sub" id="wxnow" style="margin:0 0 4px"></div>
+  <label for="city">Find a place</label>
+  <div style="display:flex;gap:8px"><input id="city" placeholder="City name" onkeydown="if(event.key==='Enter')findCity()"><button class="ghost" style="margin:0" onclick="findCity()">Search</button></div>
+  <select id="cities" style="display:none;margin-top:8px" onchange="pickCity()"></select>
+  <div class="row3">
+    <div><label for="wx_name">Name on screen</label><input id="wx_name" maxlength="31"></div>
+    <div><label for="wx_lat">Latitude</label><input id="wx_lat" inputmode="decimal"></div>
+    <div><label for="wx_lon">Longitude</label><input id="wx_lon" inputmode="decimal"></div>
+  </div>
+  <div class="row">
+    <div><label for="wx_on">Weather page</label><select id="wx_on"><option value="1">Show</option><option value="0">Hide</option></select></div>
+    <div><label for="wx_f">Units</label><select id="wx_f"><option value="0">°C, km/h</option><option value="1">°F, mph</option></select></div>
+  </div>
+  <div class="help">Forecast from Open-Meteo, refreshed every 15 minutes.</div>
+  <button onclick="save(['wx_name','wx_lat','wx_lon','wx_on','wx_f'])">Save</button>
+</section>
+
+<section>
+  <h2>Alerts</h2>
+  <div class="row">
+    <div><label for="alert_move">Beep when a symbol moves (%)</label><input id="alert_move" type="number" min="0" max="25" step="0.5"></div>
+    <div><label for="alert_claude">Beep when a Claude limit reaches</label><select id="alert_claude"><option value="0">Off</option><option value="50">50%</option><option value="75">75%</option><option value="80">80%</option><option value="90">90%</option><option value="95">95%</option><option value="100">100%</option></select></div>
+  </div>
+  <div class="row">
+    <div><label for="volume">Volume</label><select id="volume"><option value="0">Off</option><option value="1">Low</option><option value="2">Medium</option><option value="3">High</option></select></div>
+  </div>
+  <div class="help">Daily change vs. previous close; 0 turns price alerts off. An alert jumps the screen to that page (this clock has no buzzer fitted, so the sound settings may do nothing).</div>
+  <button onclick="save(['alert_move','alert_claude','volume'])">Save</button>
+  <button class="ghost" onclick="save(['volume']).then(()=>post('/api/beep?t=0'))">Test up</button>
+  <button class="ghost" onclick="save(['volume']).then(()=>post('/api/beep?t=1'))">Test down</button>
+  <button class="ghost" onclick="save(['volume']).then(()=>post('/api/beep?t=2'))">Test Claude</button>
+</section>
+
+<section>
+  <h2>Night mode</h2>
+  <div class="row">
+    <div><label for="quiet_from">Night from</label><select id="quiet_from"></select></div>
+    <div><label for="quiet_to">until</label><select id="quiet_to"></select></div>
+  </div>
+  <div class="row">
+    <div><label for="night_bright">Night brightness</label><select id="night_bright"><option value="0">Screen off</option><option value="3">3%</option><option value="5">5%</option><option value="10">10%</option><option value="20">20%</option><option value="40">40%</option></select></div>
+    <div><label for="night_pages">At night show</label><select id="night_pages"><option value="0">Big clock</option><option value="1">Normal pages</option></select></div>
+  </div>
+  <div class="help">Same hour in both boxes turns night mode off. Messages marked as alerts (like "Claude needs you") still show at night.</div>
+  <button onclick="save(['quiet_from','quiet_to','night_bright','night_pages'])">Save</button>
+</section>
+
+<section>
+  <h2>Messages</h2>
+  <table id="push"></table>
+  <div class="help">Pages pushed by other devices with <code>POST /api/push</code> (see the README).</div>
+</section>
+
+<section>
+  <h2>Wi-Fi</h2>
+  <div class="row">
+    <div><label for="ssid">Network</label><input id="ssid" autocomplete="off"></div>
+    <div><label for="pass">Password</label><input id="pass" type="password" autocomplete="off"></div>
+  </div>
+  <button onclick="wifi()">Connect</button>
+</section>
+
+<section>
+  <details>
+    <summary>Display wiring (advanced)</summary>
+    <div class="help">Only change these if the screen stays dark or the colours look wrong. Saving reboots the clock.</div>
+    <div class="row3">
+      <div><label for="pin_sclk">SCLK</label><input id="pin_sclk" type="number"></div>
+      <div><label for="pin_mosi">MOSI</label><input id="pin_mosi" type="number"></div>
+      <div><label for="pin_dc">DC</label><input id="pin_dc" type="number"></div>
+      <div><label for="pin_rst">RST</label><input id="pin_rst" type="number"></div>
+      <div><label for="pin_cs">CS (-1 = none)</label><input id="pin_cs" type="number"></div>
+      <div><label for="pin_bl">Backlight</label><input id="pin_bl" type="number"></div>
+    </div>
+    <div class="row3">
+      <div><label for="bl_inverted">Backlight active</label><select id="bl_inverted"><option value="1">Low</option><option value="0">High</option></select></div>
+      <div><label for="spi_mode">SPI mode</label><select id="spi_mode"><option>0</option><option>1</option><option>2</option><option>3</option></select></div>
+      <div><label for="spi_mhz">SPI MHz</label><input id="spi_mhz" type="number" min="1" max="80"></div>
+      <div><label for="invert">Invert colours</label><select id="invert"><option value="1">On</option><option value="0">Off</option></select></div>
+      <div><label for="bgr">Colour order</label><select id="bgr"><option value="1">BGR</option><option value="0">RGB</option></select></div>
+      <div><label for="rot180">Rotate 180°</label><select id="rot180"><option value="0">No</option><option value="1">Yes</option></select></div>
+    </div>
+    <button onclick="save(['pin_sclk','pin_mosi','pin_dc','pin_rst','pin_cs','pin_bl','bl_inverted','spi_mode','spi_mhz','invert','bgr','rot180'])">Save &amp; reboot</button>
+  </details>
+</section>
+
+<section>
+  <h2>Firmware</h2>
+  <div id="fw" class="help"></div>
+  <label for="file">Upload a new Stock Clock .bin</label>
+  <input id="file" type="file" accept=".bin">
+  <button onclick="ota()">Upload</button>
+  <div id="stockbox" style="display:none">
+    <div class="help" style="margin-top:12px">Uploading a new build overwrites the original firmware's slot. Go back to the original firmware first if you want to keep it.</div>
+    <button class="danger" onclick="revert()">Go back to original firmware</button>
+  </div>
+  <button class="ghost" onclick="post('/api/reboot').then(()=>toast('Rebooting…'))">Reboot</button>
+</section>
+</main>
+<div id="msg"></div>
+<script>
+const $=id=>document.getElementById(id);
+for(const id of ['quiet_from','quiet_to'])$(id).innerHTML=[...Array(24).keys()].map(h=>`<option value="${h}">${String(h).padStart(2,'0')}:00</option>`).join('');
+let first=true;
+function toast(t){const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(m._t);m._t=setTimeout(()=>m.style.display='none',3000)}
+function post(url,body){return fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body})}
+function dec(p){p=Math.abs(p);return p>=10000?0:p>=10?2:4}
+function fmt(p){return p.toLocaleString(undefined,{minimumFractionDigits:dec(p),maximumFractionDigits:dec(p)})}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+async function load(){
+  try{
+    const s=await (await fetch('/api/state')).json();
+    const st=['starting','connecting','setup AP','connected'][s.wifi.state];
+    $('sub').textContent=`${s.version} · Wi-Fi ${st}${s.wifi.ssid?' ('+s.wifi.ssid+')':''}${s.wifi.ip?' · '+s.wifi.ip:''} · ${s.rssi||''} dBm · heap ${(s.heap/1024).toFixed(0)} KB`;
+    $('q').innerHTML=s.quotes.map(q=>{
+      if(!q.ok)return `<tr><td>${esc(q.sym)}</td><td class="r muted" colspan="2">${esc(q.err||'loading…')}</td></tr>`;
+      const c=q.price-q.prev,p=q.prev?c/q.prev*100:0,cl=c>=0?'up':'down';
+      return `<tr><td><b>${esc(q.sym)}</b> <span class="muted">${esc(q.name)}</span></td><td class="r">${fmt(q.price)} <span class="muted">${esc(q.cur)}</span></td><td class="r ${cl}">${p>=0?'+':''}${p.toFixed(2)}%</td></tr>`}).join('');
+    $('fw').textContent=`Running ${s.version} from ${s.running}.`+(s.stock?` Original firmware is still in ${s.stock_label} (${s.stock_version}).`:' No original firmware left on the device.')+(s.boot_note?' ⚠ '+s.boot_note:'')+(s.resets?` Last restarts: ${s.resets}.`:'');
+    $('stockbox').style.display=s.stock?'block':'none';
+    $('push').innerHTML=s.push.length?s.push.map(m=>`<tr><td>${m.alert?'🔔 ':''}<b>${esc(m.title||m.id)}</b> <span class="muted">${esc(m.l1)}</span></td><td class="r muted">${Math.round(m.expires_in/60)} min left</td><td class="r"><a href="#" data-id="${esc(m.id)}" onclick="clearPush(this.dataset.id);return false">clear</a></td></tr>`).join(''):'<tr><td class="muted">No messages</td></tr>';
+    const u=s.cfg.wx_f?'°F':'°C';
+    $('wxnow').textContent=!s.cfg.wx_on?'Weather page hidden.':s.wx.ok?`Now in ${s.cfg.wx_name}: ${s.wx.temp.toFixed(1)}${u}, ${s.wx.hum}% humidity, wind ${s.wx.wind} ${s.cfg.wx_f?'mph':'km/h'}`:(s.wx.err||'Loading weather…');
+    if(first){
+      for(const k in s.cfg){const e=$(k);if(e)e.value=s.cfg[k]}
+      $('bv').textContent=s.cfg.bright+'%';
+      if(s.wifi.ssid)$('ssid').value=s.wifi.ssid;
+      first=false;
+    }
+  }catch(e){$('sub').textContent='device not reachable'}
+}
+$('bright').oninput=e=>{$('bv').textContent=e.target.value+'%';post('/api/settings','bright='+e.target.value)};
+let cities=[];
+const ascii=t=>t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7e]/g,'').trim();
+async function findCity(){
+  const q=$('city').value.trim();if(!q)return;
+  try{
+    const r=await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=8&name='+encodeURIComponent(q))).json();
+    cities=r.results||[];
+  }catch(e){return toast('Search needs internet access from this browser')}
+  if(!cities.length)return toast('No match');
+  const sel=$('cities');
+  sel.innerHTML=cities.map((c,i)=>`<option value="${i}">${esc([c.name,c.admin1,c.country].filter(Boolean).join(', '))}</option>`).join('');
+  sel.style.display='block';sel.value=0;pickCity();
+}
+function pickCity(){
+  const c=cities[$('cities').value];if(!c)return;
+  $('wx_name').value=ascii(c.name).slice(0,31);$('wx_lat').value=c.latitude.toFixed(4);$('wx_lon').value=c.longitude.toFixed(4);
+}
+function clearPush(id){post('/api/push','id='+encodeURIComponent(id)+'&clear=1').then(load)}
+async function save(keys){
+  const b=keys.map(k=>k+'='+encodeURIComponent($(k).value)).join('&');
+  const r=await (await post('/api/settings',b)).json();
+  toast(r.reboot?'Saved, rebooting…':'Saved');
+  setTimeout(load,1500);
+}
+async function wifi(){
+  await post('/api/wifi','ssid='+encodeURIComponent($('ssid').value)+'&pass='+encodeURIComponent($('pass').value));
+  toast('Connecting… the clock shows its new address on screen');
+}
+async function ota(){
+  const f=$('file').files[0];if(!f)return toast('Choose a .bin file');
+  if(!confirm('Upload '+f.name+'?'))return;
+  toast('Uploading…');
+  const r=await fetch('/ota',{method:'POST',body:f});
+  toast(r.ok?'Done, rebooting…':'Failed: '+await r.text());
+}
+async function revert(){
+  if(!confirm('Reboot into the original firmware? You can upload Stock Clock again from its own Firmware Update page.'))return;
+  const r=await post('/api/revert');
+  toast(r.ok?'Rebooting into original firmware…':'Failed: '+await r.text());
+}
+load();setInterval(load,10000);
+</script>
+</body>
+</html>

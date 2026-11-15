@@ -1,0 +1,7 @@
+# Build-time only. OTA never rewrites the partition table: the clock keeps its own.
+# Two 1.5 MB slots just give the size check a realistic limit.
+nvs,      data, nvs,     0x9000,  0x4000,
+otadata,  data, ota,     0xd000,  0x2000,
+phy_init, data, phy,     0xf000,  0x1000,
+ota_0,    app,  ota_0,   0x10000, 0x180000,
+ota_1,    app,  ota_1,   0x190000,0x180000,
